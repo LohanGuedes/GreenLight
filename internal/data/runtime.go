@@ -17,11 +17,11 @@ func (r Runtime) MarshalJSON() ([]byte, error) {
 	return []byte(quotedJSONValue), nil
 }
 
-// Expected runtime format: "N mins"
 // Examples:
 // "runtime": "107 mins"
 // "runtime": "7 mins"
 // "runtime": "30 mins"
+// Expected runtime format: "N mins"
 func (r *Runtime) UnmarshalJSON(jsonValue []byte) error {
 	unquotedJSONValue, err := strconv.Unquote(string(jsonValue))
 	if err != nil {
