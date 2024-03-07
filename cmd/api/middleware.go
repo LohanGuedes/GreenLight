@@ -34,15 +34,17 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 	)
 
 	go func() {
-		time.Sleep(time.Minute)
+		for {
+			time.Sleep(time.Minute)
 
-		mu.Lock()
-		for ip, client := range clients {
-			if time.Since(client.lastSeen) > 3*time.Minute {
-				delete(clients, ip)
+			mu.Lock()
+			for ip, client := range clients {
+				if time.Since(client.lastSeen) > 3*time.Minute {
+					delete(clients, ip)
+				}
 			}
+			mu.Unlock()
 		}
-		mu.Unlock()
 	}()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -52,14 +54,15 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 		}
 
 		// Not defered mu.Unlock()
-		// because the serverHTTP()
+		// because the serveHTTP()
 		// if this was defered, the mutex wouldnt be unlocked until it got
 		// back from the huge stream of hanlders.
 		mu.Lock()
+		// defer mu.Unlock() !!! DO NOT UNCOMMENT THIS LINE !!!
 
 		if _, found := clients[ip]; !found {
 			clients[ip] = &client{
-				limiter: rate.NewLimiter(2, 4),
+				limiter: rate.NewLimiter(rate.Limit(app.config.limiter.rps), app.config.limiter.burst),
 			}
 		}
 
